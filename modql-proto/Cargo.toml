@@ -1,0 +1,23 @@
+[package]
+name = "modql-proto"
+version = "0.5.0-alpha.9-WIP"
+edition = "2024"
+authors = ["Stefan Kaufhold <stefan@kaufhold.dev>"]
+license = "MIT OR Apache-2.0"
+rust-version = "1.89"
+description = "Protobuf / gRPC message types and conversions for modql filter and list-options types."
+categories = ["data-structures", "network-programming"]
+keywords = ["modql", "grpc", "protobuf", "filter", "query"]
+homepage = "https://github.com/jeremychone/rust-modql"
+repository = "https://github.com/jeremychone/rust-modql"
+
+[lints]
+workspace = true
+
+[dependencies]
+modql = { version = "=0.5.0-alpha.9-WIP", path = ".." }
+prost = "0.14"
+serde_json = "1"
+
+[dev-dependencies]
+prost = "0.14"

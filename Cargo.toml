@@ -27,7 +27,7 @@ unsafe_code = "forbid"
 unused = { level = "allow", priority = -1 } # For test files (dev)
 
 [workspace]
-members = [".", "modql-macros"]
+members = [".", "modql-macros", "modql-proto"]
 
 [features]
 # default = ["modql-macros", "with-sea-query", "with-rusqlite"] # for dev

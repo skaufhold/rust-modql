@@ -1,0 +1,189 @@
+syntax = "proto3";
+
+package modql;
+
+// =============================================================================
+// Filter Types
+// =============================================================================
+
+// FilterGroups is the top-level filter message.
+// Groups are combined with OR; nodes within each group are combined with AND.
+message FilterGroups {
+  repeated FilterGroup groups = 1;
+}
+
+// A FilterGroup is a collection of FilterNodes combined with AND.
+message FilterGroup {
+  repeated FilterNode nodes = 1;
+}
+
+// A FilterNode represents a single field filter with one or more operator-value pairs.
+message FilterNode {
+  string name                   = 1; // field name
+  optional string rel           = 2; // relation prefix (e.g. table name)
+  repeated OpVal opvals         = 3; // operator-value pairs (combined AND)
+  FilterNodeOptions options      = 4;
+}
+
+message FilterNodeOptions {
+  optional string cast_as        = 1; // cast the value before comparison
+  optional string cast_column_as = 2; // cast the column before comparison
+}
+
+// OpVal is a discriminated union of all operator-value types.
+message OpVal {
+  oneof value {
+    OpValString   string     = 1;
+    OpValInt64    int64      = 2;
+    OpValInt32    int32      = 3;
+    OpValFloat64  float64    = 4;
+    OpValBool     bool       = 5;
+    OpValJsonValue json_value = 6;
+  }
+}
+
+// =============================================================================
+// Helper list types (proto3 does not allow repeated inside oneof)
+// =============================================================================
+
+message StringList   { repeated string values = 1; }
+message Int64List    { repeated int64  values = 1; }
+message Int32List    { repeated int32  values = 1; }
+message Float64List  { repeated double values = 1; }
+
+// =============================================================================
+// String operator values
+// =============================================================================
+
+message OpValString {
+  oneof op {
+    string     eq                = 1;
+    string     not               = 2;
+    StringList in                = 3;
+    StringList not_in            = 4;
+    string     lt                = 5;
+    string     lte               = 6;
+    string     gt                = 7;
+    string     gte               = 8;
+    string     contains          = 9;
+    string     not_contains      = 10;
+    StringList contains_any      = 11;
+    StringList not_contains_any  = 12;
+    StringList contains_all      = 13;
+    string     starts_with       = 14;
+    string     not_starts_with   = 15;
+    StringList starts_with_any   = 16;
+    StringList not_starts_with_any = 17;
+    string     ends_with         = 18;
+    string     not_ends_with     = 19;
+    StringList ends_with_any     = 20;
+    StringList not_ends_with_any = 21;
+    bool       empty             = 22;
+    bool       null              = 23;
+    string     contains_ci       = 24;
+    string     not_contains_ci   = 25;
+    string     starts_with_ci    = 26;
+    string     not_starts_with_ci = 27;
+    string     ends_with_ci      = 28;
+    string     not_ends_with_ci  = 29;
+    string     ilike             = 30;
+  }
+}
+
+// =============================================================================
+// Numeric operator values
+// =============================================================================
+
+message OpValInt64 {
+  oneof op {
+    int64     eq     = 1;
+    int64     not    = 2;
+    Int64List in     = 3;
+    Int64List not_in = 4;
+    int64     lt     = 5;
+    int64     lte    = 6;
+    int64     gt     = 7;
+    int64     gte    = 8;
+    bool      null   = 9;
+  }
+}
+
+message OpValInt32 {
+  oneof op {
+    int32     eq     = 1;
+    int32     not    = 2;
+    Int32List in     = 3;
+    Int32List not_in = 4;
+    int32     lt     = 5;
+    int32     lte    = 6;
+    int32     gt     = 7;
+    int32     gte    = 8;
+    bool      null   = 9;
+  }
+}
+
+message OpValFloat64 {
+  oneof op {
+    double      eq     = 1;
+    double      not    = 2;
+    Float64List in     = 3;
+    Float64List not_in = 4;
+    double      lt     = 5;
+    double      lte    = 6;
+    double      gt     = 7;
+    double      gte    = 8;
+    bool        null   = 9;
+  }
+}
+
+// =============================================================================
+// Boolean operator values
+// =============================================================================
+
+message OpValBool {
+  oneof op {
+    bool eq   = 1;
+    bool not  = 2;
+    bool null = 3;
+  }
+}
+
+// =============================================================================
+// Arbitrary JSON operator values
+// Values are serialized as JSON strings to support any serde_json::Value.
+// =============================================================================
+
+message OpValJsonValue {
+  oneof op {
+    string     eq     = 1; // JSON-encoded value
+    string     not    = 2;
+    StringList in     = 3; // JSON-encoded values
+    StringList not_in = 4;
+    string     lt     = 5;
+    string     lte    = 6;
+    string     gt     = 7;
+    string     gte    = 8;
+    bool       null   = 9;
+  }
+}
+
+// =============================================================================
+// List options (pagination + ordering)
+// =============================================================================
+
+message ListOptions {
+  optional int64   limit     = 1;
+  optional int64   offset    = 2;
+  optional OrderBys order_bys = 3;
+}
+
+message OrderBys {
+  repeated OrderBy order_bys = 1;
+}
+
+message OrderBy {
+  oneof direction {
+    string asc  = 1; // column name for ascending order
+    string desc = 2; // column name for descending order
+  }
+}

@@ -158,6 +158,91 @@ The following tables show the list of possible operators for each type.
 | `$null`  | If the value is null       | `{name: {"$null": true}}`                    |
 
 
+## `modql-proto` — gRPC / protobuf support
+
+Protobuf support lives in the companion crate **`modql-proto`** (same workspace).
+Add both crates to use modql filter and list-options types over a gRPC API:
+
+```toml
+modql       = { version = "..." }
+modql-proto = { version = "..." }
+```
+
+### Proto schema
+
+The canonical schema lives at [`modql-proto/proto/modql.proto`](modql-proto/proto/modql.proto).
+Pass it to `protoc` or any code-generator (e.g. `tonic-build`) to produce client
+stubs for Rust, Go, Python, TypeScript, or any other gRPC-supported language.
+
+### Message structure
+
+```
+FilterGroups                      ← top-level query filter
+  └─ repeated FilterGroup         ← groups are OR-ed together
+       └─ repeated FilterNode     ← nodes inside a group are AND-ed
+            ├─ name: string       ← field name
+            ├─ rel: string?       ← optional relation / table prefix
+            ├─ repeated OpVal     ← operator-value pairs (AND-ed per node)
+            └─ FilterNodeOptions  ← optional DB cast hints
+
+OpVal (oneof)
+  ├─ OpValString    — 30 operators: $eq, $contains, $startsWith, $ilike, …
+  ├─ OpValInt64     — $eq, $not, $in, $notIn, $lt, $lte, $gt, $gte, $null
+  ├─ OpValInt32     — same operators as Int64
+  ├─ OpValFloat64   — same operators as Int64
+  ├─ OpValBool      — $eq, $not, $null
+  └─ OpValJsonValue — same comparison set; values are JSON-encoded strings
+
+ListOptions
+  ├─ limit: int64?
+  ├─ offset: int64?
+  └─ OrderBys
+       └─ repeated OrderBy (oneof asc / desc column name)
+```
+
+### Rust conversion
+
+Proto messages convert into native modql types with [`TryFrom`] (fallible, for
+types with required `oneof` fields) or [`From`] (infallible):
+
+```rust
+use prost::Message as _;
+use modql_proto::{ProtoFilterGroups, ProtoListOptions, ProtoConversionError};
+use modql::filter::{FilterGroups, ListOptions};
+
+// Decode from wire bytes (e.g. from a tonic request body)
+let filter: FilterGroups = ProtoFilterGroups::decode(bytes)?
+    .try_into()
+    .map_err(|e: ProtoConversionError| tonic::Status::invalid_argument(e.to_string()))?;
+
+let list_opts: ListOptions = ProtoListOptions::decode(opts_bytes)
+    .map(ListOptions::from)?;
+```
+
+### JSON-encoded arbitrary values
+
+`OpValJsonValue` carries modql's generic `OpValValue` (backed by
+`serde_json::Value`) by JSON-encoding each value as a string on the wire:
+
+```proto
+// $eq: 42
+OpValJsonValue { eq: "42" }
+
+// $eq: "hello"
+OpValJsonValue { eq: "\"hello\"" }
+
+// $in: [1, 2, 3]
+OpValJsonValue { in: { values: ["1", "2", "3"] } }
+```
+
+### Errors
+
+[`ProtoConversionError`](filter::proto::ProtoConversionError) is returned when:
+- a required `oneof` field is absent (`MissingField`), or
+- a JSON-encoded value cannot be parsed (`InvalidJsonValue`).
+
+---
+
 ## More Info
 
 - `modql::filter` - Delivers a declarative structure that can be deserialized from JSON.
