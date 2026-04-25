@@ -7,7 +7,7 @@
 
 use modql::filter::{
     FilterGroups, ListOptions, OpVal, OpValBool, OpValFloat64, OpValInt32, OpValInt64, OpValString,
-    OpValValue, OrderBy, OrderBys,
+    OpValValue, OrderBy
 };
 use modql_proto::{
     // error

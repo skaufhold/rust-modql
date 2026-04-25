@@ -4,6 +4,8 @@ use crate::filter::*;
 pub mod op_val_bool;
 pub mod op_val_nums;
 pub mod op_val_string;
+#[cfg(feature = "uuid")]
+pub mod op_val_uuid;
 pub mod op_val_value;
 
 // region:    --- OpVal
@@ -18,6 +20,8 @@ pub enum OpVal {
 
 	Bool(OpValBool),
 	Value(OpValValue),
+	#[cfg(feature = "uuid")]
+	Uuid(OpValUuid),
 }
 
 // endregion: --- OpVal
@@ -64,6 +68,20 @@ impl_from_for_opvals!(
 	OpValValue,
 	OpValsValue
 );
+
+#[cfg(feature = "uuid")]
+impl From<OpValUuid> for OpValsUuid {
+	fn from(val: OpValUuid) -> Self {
+		OpValsUuid(vec![val])
+	}
+}
+
+#[cfg(feature = "uuid")]
+impl From<Vec<OpValUuid>> for OpValsUuid {
+	fn from(val: Vec<OpValUuid>) -> Self {
+		OpValsUuid(val)
+	}
+}
 
 // endregion: --- From [Type]OpVal & Vec<[Type]OpVal> to [Type]OpVals
 
