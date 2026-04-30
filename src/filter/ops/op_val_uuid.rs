@@ -112,12 +112,12 @@ mod with_sea_query {
 	use super::*;
 	use crate::filter::{FilterNodeOptions, SeaResult, sea_is_col_value_null};
 	use crate::{into_node_column_expr, into_node_value_expr};
-	use sea_query::{BinOper, ColumnRef, Condition, ExprTrait, SimpleExpr};
+	use sea_query::{BinOper, ColumnRef, Condition, ExprTrait, SimpleExpr, Value};
 
 	impl OpValUuid {
 		pub fn into_sea_cond_expr(self, col: &ColumnRef, node_options: &FilterNodeOptions) -> SeaResult<Condition> {
 			let binary_fn = |op: BinOper, uuid: Uuid| -> SeaResult<Condition> {
-				let vxpr = into_node_value_expr(uuid, node_options);
+				let vxpr = into_node_value_expr(Value::Uuid(Some(uuid)), node_options);
 				let column = into_node_column_expr(col.clone(), node_options);
 				Ok(SimpleExpr::binary(column, op, vxpr).into())
 			};
@@ -125,7 +125,7 @@ mod with_sea_query {
 			let binaries_fn = |op: BinOper, uuids: Vec<Uuid>| -> SeaResult<Condition> {
 				let vxpr_list: Vec<SimpleExpr> = uuids
 					.into_iter()
-					.map(|v| into_node_value_expr(v, node_options))
+					.map(|v| into_node_value_expr(Value::Uuid(Some(v)), node_options))
 					.collect();
 				let vxpr = SimpleExpr::Tuple(vxpr_list);
 				let column = into_node_column_expr(col.clone(), node_options);

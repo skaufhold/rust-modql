@@ -19,6 +19,8 @@ pub use ops::op_val_nums::*;
 pub use ops::op_val_string::*;
 #[cfg(feature = "uuid")]
 pub use ops::op_val_uuid::*;
+#[cfg(feature = "chrono")]
+pub use ops::op_val_timestamp::*;
 pub use ops::op_val_value::*;
 pub use ops::*;
 

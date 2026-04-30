@@ -19,3 +19,6 @@ pub use sea_utils::*;
 
 #[cfg(feature = "with-rusqlite")]
 pub use sqlite::*;
+
+#[cfg(feature = "uuid")]
+pub use uuid::*;

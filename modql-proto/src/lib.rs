@@ -117,6 +117,8 @@ pub enum ProtoConversionError {
     MissingField(&'static str),
     /// A JSON-encoded value embedded in the proto message could not be parsed.
     InvalidJsonValue(serde_json::Error),
+    /// A feature is not enabled.
+    UnsupportedFeature(&'static str),
 }
 
 impl core::fmt::Display for ProtoConversionError {
@@ -124,6 +126,7 @@ impl core::fmt::Display for ProtoConversionError {
         match self {
             Self::MissingField(name) => write!(f, "missing required proto field: {name}"),
             Self::InvalidJsonValue(e) => write!(f, "invalid JSON value in proto message: {e}"),
+            Self::UnsupportedFeature(f_name) => write!(f, "feature not enabled: {f_name}"),
         }
     }
 }
@@ -199,12 +202,6 @@ pub struct ProtoFilterNodeOptions {
 // OpVal discriminated union
 // =============================================================================
 
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ProtoOpVal {
-    #[prost(oneof = "proto_op_val::Value", tags = "1, 2, 3, 4, 5, 6")]
-    pub value: Option<proto_op_val::Value>,
-}
-
 pub mod proto_op_val {
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Value {
@@ -220,7 +217,17 @@ pub mod proto_op_val {
         Bool(super::ProtoOpValBool),
         #[prost(message, tag = "6")]
         JsonValue(super::ProtoOpValJsonValue),
+        #[prost(message, tag = "7")]
+        Uuid(super::ProtoOpValUuid),
+        #[prost(message, tag = "8")]
+        Timestamp(super::ProtoOpValTimestamp),
     }
+}
+
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ProtoOpVal {
+    #[prost(oneof = "proto_op_val::Value", tags = "1, 2, 3, 4, 5, 6, 7, 8")]
+    pub value: Option<proto_op_val::Value>,
 }
 
 // =============================================================================
@@ -555,6 +562,24 @@ impl TryFrom<ProtoOpVal> for OpVal {
             Some(proto_op_val::Value::Int32(v)) => Ok(OpVal::Int32(OpValInt32::try_from(v)?)),
             Some(proto_op_val::Value::Float64(v)) => Ok(OpVal::Float64(OpValFloat64::try_from(v)?)),
             Some(proto_op_val::Value::Bool(v)) => Ok(OpVal::Bool(OpValBool::try_from(v)?)),
+            Some(proto_op_val::Value::Uuid(v)) => {
+                #[cfg(feature = "uuid")]
+                {
+                    use modql::filter::OpValUuid;
+                    return Ok(OpVal::Uuid(OpValUuid::try_from(v)?));
+                }
+                #[cfg(not(feature = "uuid"))]
+                return Err(ProtoConversionError::UnsupportedFeature("uuid"));
+            }
+            Some(proto_op_val::Value::Timestamp(v)) => {
+                #[cfg(feature = "chrono")]
+                {
+                    use modql::filter::OpValTimestamp;
+                    return Ok(OpVal::Timestamp(OpValTimestamp::try_from(v)?));
+                }
+                #[cfg(not(feature = "chrono"))]
+                return Err(ProtoConversionError::UnsupportedFeature("chrono"));
+            }
             Some(proto_op_val::Value::JsonValue(v)) => Ok(OpVal::Value(OpValValue::try_from(v)?)),
             None => Err(ProtoConversionError::MissingField("OpVal.value")),
         }
@@ -746,6 +771,177 @@ impl From<ProtoOrderBy> for OrderBy {
             // Absent direction defaults to ascending with an empty column name
             // (callers should validate before sending).
             None => OrderBy::Asc(String::new()),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ProtoOpValUuid {
+    #[prost(oneof = "proto_op_val_uuid::Op", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9")]
+    pub op: Option<proto_op_val_uuid::Op>,
+}
+
+pub mod proto_op_val_uuid {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Op {
+        #[prost(string, tag = "1")]
+        Eq(String),
+        #[prost(string, tag = "2")]
+        Not(String),
+        #[prost(message, tag = "3")]
+        In(super::StringList),
+        #[prost(message, tag = "4")]
+        NotIn(super::StringList),
+        #[prost(string, tag = "5")]
+        Lt(String),
+        #[prost(string, tag = "6")]
+        Lte(String),
+        #[prost(string, tag = "7")]
+        Gt(String),
+        #[prost(string, tag = "8")]
+        Gte(String),
+        #[prost(bool, tag = "9")]
+        Null(bool),
+    }
+}
+
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Timestamp {
+    #[prost(int64, tag = "1")]
+    pub seconds: i64,
+    #[prost(uint32, tag = "2")]
+    pub nanos: u32,
+}
+
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TimestampList {
+    #[prost(message, repeated, tag = "1")]
+    pub values: ::prost::alloc::vec::Vec<Timestamp>,
+}
+
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ProtoOpValTimestamp {
+    #[prost(oneof = "proto_op_val_timestamp::Op", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9")]
+    pub op: Option<proto_op_val_timestamp::Op>,
+}
+
+pub mod proto_op_val_timestamp {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Op {
+        #[prost(message, tag = "1")]
+        Eq(super::Timestamp),
+        #[prost(message, tag = "2")]
+        Not(super::Timestamp),
+        #[prost(message, tag = "3")]
+        In(super::TimestampList),
+        #[prost(message, tag = "4")]
+        NotIn(super::TimestampList),
+        #[prost(message, tag = "5")]
+        Lt(super::Timestamp),
+        #[prost(message, tag = "6")]
+        Lte(super::Timestamp),
+        #[prost(message, tag = "7")]
+        Gt(super::Timestamp),
+        #[prost(message, tag = "8")]
+        Gte(super::Timestamp),
+        #[prost(bool, tag = "9")]
+        Null(bool),
+    }
+}
+
+// -- OpValUuid --------------------------------------------------------------
+
+#[cfg(feature = "uuid")]
+pub mod uuid_impl {
+    use uuid::Uuid;
+    use modql::filter::OpValUuid;
+    use crate::{ProtoConversionError, ProtoOpValUuid};
+    use crate::proto_op_val_uuid::Op;
+
+    impl TryFrom<ProtoOpValUuid> for OpValUuid {
+        type Error = ProtoConversionError;
+
+        fn try_from(p: ProtoOpValUuid) -> Result<Self, Self::Error> {
+            match p.op {
+                Some(Op::Eq(v)) => Ok(OpValUuid::Eq(Uuid::parse_str(&v).map_err(|_| ProtoConversionError::MissingField("Invalid UUID"))?)),
+                Some(Op::Not(v)) => Ok(OpValUuid::Not(Uuid::parse_str(&v).map_err(|_| ProtoConversionError::MissingField("Invalid UUID"))?)),
+                Some(Op::In(l)) => Ok(OpValUuid::In(l.values.into_iter().map(|v| Uuid::parse_str(&v).map_err(|_| ProtoConversionError::MissingField("Invalid UUID"))).collect::<Result<Vec<_>, _>>()?)),
+                Some(Op::NotIn(l)) => Ok(OpValUuid::NotIn(l.values.into_iter().map(|v| Uuid::parse_str(&v).map_err(|_| ProtoConversionError::MissingField("Invalid UUID"))).collect::<Result<Vec<_>, _>>()?)),
+                Some(Op::Lt(v)) => Ok(OpValUuid::Lt(Uuid::parse_str(&v).map_err(|_| ProtoConversionError::MissingField("Invalid UUID"))?)),
+                Some(Op::Lte(v)) => Ok(OpValUuid::Lte(Uuid::parse_str(&v).map_err(|_| ProtoConversionError::MissingField("Invalid UUID"))?)),
+                Some(Op::Gt(v)) => Ok(OpValUuid::Gt(Uuid::parse_str(&v).map_err(|_| ProtoConversionError::MissingField("Invalid UUID"))?)),
+                Some(Op::Gte(v)) => Ok(OpValUuid::Gte(Uuid::parse_str(&v).map_err(|_| ProtoConversionError::MissingField("Invalid UUID"))?)),
+                Some(Op::Null(v)) => Ok(OpValUuid::Null(v)),
+                None => Err(ProtoConversionError::MissingField("OpValUuid.op")),
+            }
+        }
+    }
+}
+
+// -- OpValTimestamp -----------------------------------------------------------
+
+
+#[cfg(feature = "chrono")]
+pub mod chrono_impl {
+    use modql::filter::OpValTimestamp;
+    use crate::{ProtoConversionError, ProtoOpValTimestamp, Timestamp, TimestampList};
+
+    impl TryFrom<ProtoOpValTimestamp> for OpValTimestamp {
+        type Error = ProtoConversionError;
+
+        fn try_from(p: ProtoOpValTimestamp) -> Result<Self, Self::Error> {
+            use crate::proto_op_val_timestamp::Op;
+            use chrono::{DateTime, Utc};
+
+            fn to_datetime(t: Timestamp) -> Result<DateTime<Utc>, ProtoConversionError> {
+                chrono::DateTime::from_timestamp(t.seconds, t.nanos)
+                    .ok_or(ProtoConversionError::MissingField("Invalid Timestamp"))
+            }
+
+            match p.op {
+                Some(Op::Eq(v)) => Ok(OpValTimestamp::Eq(to_datetime(v)?)),
+                Some(Op::Not(v)) => Ok(OpValTimestamp::Not(to_datetime(v)?)),
+                Some(Op::In(l)) => Ok(OpValTimestamp::In(l.values.into_iter().map(to_datetime).collect::<Result<Vec<_>, _>>()?)),
+                Some(Op::NotIn(l)) => Ok(OpValTimestamp::NotIn(l.values.into_iter().map(to_datetime).collect::<Result<Vec<_>, _>>()?)),
+                Some(Op::Lt(v)) => Ok(OpValTimestamp::Lt(to_datetime(v)?)),
+                Some(Op::Lte(v)) => Ok(OpValTimestamp::Lte(to_datetime(v)?)),
+                Some(Op::Gt(v)) => Ok(OpValTimestamp::Gt(to_datetime(v)?)),
+                Some(Op::Gte(v)) => Ok(OpValTimestamp::Gte(to_datetime(v)?)),
+                Some(Op::Null(v)) => Ok(OpValTimestamp::Null(v)),
+                None => Err(ProtoConversionError::MissingField("OpValTimestamp.op")),
+            }
+        }
+    }
+
+    #[cfg(feature = "chrono")]
+    impl From<OpValTimestamp> for ProtoOpValTimestamp {
+        fn from(op: OpValTimestamp) -> Self {
+            use crate::proto_op_val_timestamp::Op;
+            use chrono::{DateTime, Utc, Timelike};
+
+            fn to_proto_timestamp(dt: DateTime<Utc>) -> Timestamp {
+                Timestamp {
+                    seconds: dt.timestamp(),
+                    nanos: dt.nanosecond(),
+                }
+            }
+
+            let op_enum = match op {
+                OpValTimestamp::Eq(dt) => Op::Eq(to_proto_timestamp(dt)),
+                OpValTimestamp::Not(dt) => Op::Not(to_proto_timestamp(dt)),
+                OpValTimestamp::In(dts) => Op::In(TimestampList {
+                    values: dts.into_iter().map(to_proto_timestamp).collect(),
+                }),
+                OpValTimestamp::NotIn(dts) => Op::NotIn(TimestampList {
+                    values: dts.into_iter().map(to_proto_timestamp).collect(),
+                }),
+                OpValTimestamp::Lt(dt) => Op::Lt(to_proto_timestamp(dt)),
+                OpValTimestamp::Lte(dt) => Op::Lte(to_proto_timestamp(dt)),
+                OpValTimestamp::Gt(dt) => Op::Gt(to_proto_timestamp(dt)),
+                OpValTimestamp::Gte(dt) => Op::Gte(to_proto_timestamp(dt)),
+                OpValTimestamp::Null(v) => Op::Null(v),
+            };
+            ProtoOpValTimestamp { op: Some(op_enum) }
         }
     }
 }

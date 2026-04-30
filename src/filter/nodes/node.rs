@@ -190,7 +190,11 @@ mod with_sea_query {
 							}
 							ForSeaCondition::ToSeaCondition(to_sea_condition) => to_sea_condition.call(&col, ov)?,
 						}
-					}
+					},
+					#[cfg(feature = "uuid")]
+					OpVal::Uuid(ov) => ov.into_sea_cond_expr(&col, node_options)?,
+					#[cfg(feature = "chrono")]
+					OpVal::Timestamp(ov) => ov.into_sea_cond_expr(&col, node_options)?,
 				};
 
 				node_sea_exprs.push(cond_expr);

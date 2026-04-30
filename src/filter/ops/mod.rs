@@ -6,6 +6,8 @@ pub mod op_val_nums;
 pub mod op_val_string;
 #[cfg(feature = "uuid")]
 pub mod op_val_uuid;
+#[cfg(feature = "chrono")]
+pub mod op_val_timestamp;
 pub mod op_val_value;
 
 // region:    --- OpVal
@@ -22,6 +24,8 @@ pub enum OpVal {
 	Value(OpValValue),
 	#[cfg(feature = "uuid")]
 	Uuid(OpValUuid),
+	#[cfg(feature = "chrono")]
+	Timestamp(OpValTimestamp),
 }
 
 // endregion: --- OpVal
@@ -80,6 +84,20 @@ impl From<OpValUuid> for OpValsUuid {
 impl From<Vec<OpValUuid>> for OpValsUuid {
 	fn from(val: Vec<OpValUuid>) -> Self {
 		OpValsUuid(val)
+	}
+}
+
+#[cfg(feature = "chrono")]
+impl From<OpValTimestamp> for OpValsTimestamp {
+	fn from(val: OpValTimestamp) -> Self {
+		OpValsTimestamp(vec![val])
+	}
+}
+
+#[cfg(feature = "chrono")]
+impl From<Vec<OpValTimestamp>> for OpValsTimestamp {
+	fn from(val: Vec<OpValTimestamp>) -> Self {
+		OpValsTimestamp(val)
 	}
 }
 

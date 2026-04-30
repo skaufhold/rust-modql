@@ -39,6 +39,53 @@ message OpVal {
     OpValFloat64  float64    = 4;
     OpValBool     bool       = 5;
     OpValJsonValue json_value = 6;
+    OpValUuid      uuid       = 7;
+    OpValTimestamp timestamp  = 8;
+  }
+}
+
+// =============================================================================
+// UUID operator values
+// =============================================================================
+
+message OpValUuid {
+  oneof op {
+    string     eq     = 1;
+    string     not    = 2;
+    StringList in     = 3;
+    StringList not_in = 4;
+    string     lt     = 5;
+    string     lte    = 6;
+    string     gt     = 7;
+    string     gte    = 8;
+    bool       null   = 9;
+  }
+}
+
+message Timestamp {
+  int64 seconds = 1;
+  uint32 nanos = 2;
+}
+
+message TimestampList {
+  repeated Timestamp values = 1;
+}
+
+// =============================================================================
+// Timestamp operator values
+// =============================================================================
+
+message OpValTimestamp {
+  oneof op {
+    Timestamp     eq     = 1;
+    Timestamp     not    = 2;
+    TimestampList in     = 3;
+    TimestampList not_in = 4;
+    Timestamp     lt     = 5;
+    Timestamp     lte    = 6;
+    Timestamp     gt     = 7;
+    Timestamp     gte    = 8;
+    bool          null   = 9;
   }
 }
 
