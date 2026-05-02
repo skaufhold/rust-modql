@@ -19,6 +19,7 @@ pub fn derive_filter_nodes_inner(input: TokenStream) -> TokenStream {
 	//// Properties to be collected
 	let mut props: Vec<&Option<Ident>> = Vec::new(); // not needed for now.
 	let mut props_opval_idents: Vec<&Ident> = Vec::new();
+	let mut props_nested_idents: Vec<&Ident> = Vec::new();
 	let mut props_opval_rels: Vec<proc_macro2::TokenStream> = Vec::new();
 	let mut props_opval_to_sea_holder_fn_build: Vec<proc_macro2::TokenStream> = Vec::new();
 	let mut props_filter_node_options: Vec<proc_macro2::TokenStream> = Vec::new();
@@ -28,14 +29,15 @@ pub fn derive_filter_nodes_inner(input: TokenStream) -> TokenStream {
 		//       For now, assume Option is use as is, not even in a fully qualified way.
 		//       We can add other variants of Option if proven needed
 		let type_name = get_type_name(field);
+		let modql_field_attr = get_filter_field_attr(field).unwrap();
 
-		// NOTE: For now only convert the properties of types with option and OpVal
-		if type_name.starts_with("Option ") && type_name.contains("OpVal") {
+		if modql_field_attr.nested {
+			if let Some(ident) = field.ident.as_ref() {
+				props_nested_idents.push(ident);
+			}
+		} else if type_name.starts_with("Option ") && type_name.contains("OpVal") {
 			if let Some(ident) = field.ident.as_ref() {
 				props_opval_idents.push(ident);
-
-				// -- Extract the attributes
-				let modql_field_attr = get_filter_field_attr(field).unwrap();
 
 				// -- rel
 				let block_rel = if let Some(rel) = modql_field_attr.rel {
@@ -115,6 +117,11 @@ pub fn derive_filter_nodes_inner(input: TokenStream) -> TokenStream {
 					nodes.push(node);
 				}
 			)*
+			#(
+				if let Some(nested) = self.#props_nested_idents {
+					nodes.extend(modql::filter::IntoFilterNodes::filter_nodes(nested, None));
+				}
+			)*
 		}
 	} else {
 		quote! {
@@ -128,6 +135,11 @@ pub fn derive_filter_nodes_inner(input: TokenStream) -> TokenStream {
 						options: #props_filter_node_options,
 					};
 					nodes.push(node);
+				}
+			)*
+			#(
+				if let Some(nested) = self.#props_nested_idents {
+					nodes.extend(modql::filter::IntoFilterNodes::filter_nodes(nested, None));
 				}
 			)*
 		}

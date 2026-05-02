@@ -9,6 +9,7 @@ pub struct MoqlFilterFieldAttr {
 	pub to_sea_value_fn: Option<String>,
 	pub cast_as: Option<String>,
 	pub cast_column_as: Option<String>,
+	pub nested: bool,
 }
 
 pub fn get_filter_field_attr(field: &Field) -> Result<MoqlFilterFieldAttr, syn::Error> {
@@ -19,10 +20,11 @@ pub fn get_filter_field_attr(field: &Field) -> Result<MoqlFilterFieldAttr, syn::
 	let mut to_sea_value_fn: Option<String> = None;
 	let mut cast_as: Option<String> = None;
 	let mut cast_column_as: Option<String> = None;
+	let mut nested = false;
 	if let Some(attribute) = attribute {
-		let nested = attribute.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)?;
+		let nested_meta = attribute.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)?;
 
-		for meta in nested {
+		for meta in nested_meta {
 			match meta {
 				// #[modql(rel= "project", to_sea_condition_fn = "my_sea_cond_fn_name")]
 				Meta::NameValue(nv) => {
@@ -36,6 +38,11 @@ pub fn get_filter_field_attr(field: &Field) -> Result<MoqlFilterFieldAttr, syn::
 						rel = get_meta_value_string(nv);
 					} else if nv.path.is_ident("cast_column_as") {
 						cast_column_as = get_meta_value_string(nv);
+					}
+				}
+				Meta::Path(path) => {
+					if path.is_ident("nested") {
+						nested = true;
 					}
 				}
 
@@ -54,5 +61,6 @@ pub fn get_filter_field_attr(field: &Field) -> Result<MoqlFilterFieldAttr, syn::
 		to_sea_value_fn,
 		cast_as,
 		cast_column_as,
+		nested,
 	})
 }
