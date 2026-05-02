@@ -1,5 +1,9 @@
 use crate::filter::ops::OpVal;
 use crate::filter::{OpValBool, OpValFloat64, OpValInt32, OpValInt64, OpValString};
+#[cfg(feature = "chrono")]
+use crate::filter::OpValTimestamp;
+#[cfg(feature = "uuid")]
+use crate::filter::OpValUuid;
 
 pub trait IntoFilterNodes {
 	fn filter_nodes(self, rel: Option<String>) -> Vec<FilterNode>;
@@ -86,6 +90,11 @@ from_tuples_opval!(
 	// Bool
 	OpValBool
 );
+#[cfg(feature = "chrono")]
+from_tuples_opval!(OpValTimestamp);
+
+#[cfg(feature = "uuid")]
+from_tuples_opval!(OpValUuid);
 // endregion: --- From Tuples (OpValType)
 
 // region:    --- Froms Tuples (String val)

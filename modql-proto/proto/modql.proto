@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 package modql;
 
 // =============================================================================
@@ -62,13 +64,8 @@ message OpValUuid {
   }
 }
 
-message Timestamp {
-  int64 seconds = 1;
-  uint32 nanos = 2;
-}
-
 message TimestampList {
-  repeated Timestamp values = 1;
+  repeated google.protobuf.Timestamp values = 1;
 }
 
 // =============================================================================
@@ -77,14 +74,14 @@ message TimestampList {
 
 message OpValTimestamp {
   oneof op {
-    Timestamp     eq     = 1;
-    Timestamp     not    = 2;
+    google.protobuf.Timestamp eq     = 1;
+    google.protobuf.Timestamp not    = 2;
     TimestampList in     = 3;
     TimestampList not_in = 4;
-    Timestamp     lt     = 5;
-    Timestamp     lte    = 6;
-    Timestamp     gt     = 7;
-    Timestamp     gte    = 8;
+    google.protobuf.Timestamp lt     = 5;
+    google.protobuf.Timestamp lte    = 6;
+    google.protobuf.Timestamp gt     = 7;
+    google.protobuf.Timestamp gte    = 8;
     bool          null   = 9;
   }
 }

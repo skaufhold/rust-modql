@@ -805,18 +805,11 @@ pub mod proto_op_val_uuid {
     }
 }
 
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Timestamp {
-    #[prost(int64, tag = "1")]
-    pub seconds: i64,
-    #[prost(uint32, tag = "2")]
-    pub nanos: u32,
-}
 
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TimestampList {
     #[prost(message, repeated, tag = "1")]
-    pub values: ::prost::alloc::vec::Vec<Timestamp>,
+    pub values: ::prost::alloc::vec::Vec<prost_types::Timestamp>,
 }
 
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -829,21 +822,21 @@ pub mod proto_op_val_timestamp {
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Op {
         #[prost(message, tag = "1")]
-        Eq(super::Timestamp),
+        Eq(prost_types::Timestamp),
         #[prost(message, tag = "2")]
-        Not(super::Timestamp),
+        Not(prost_types::Timestamp),
         #[prost(message, tag = "3")]
         In(super::TimestampList),
         #[prost(message, tag = "4")]
         NotIn(super::TimestampList),
         #[prost(message, tag = "5")]
-        Lt(super::Timestamp),
+        Lt(prost_types::Timestamp),
         #[prost(message, tag = "6")]
-        Lte(super::Timestamp),
+        Lte(prost_types::Timestamp),
         #[prost(message, tag = "7")]
-        Gt(super::Timestamp),
+        Gt(prost_types::Timestamp),
         #[prost(message, tag = "8")]
-        Gte(super::Timestamp),
+        Gte(prost_types::Timestamp),
         #[prost(bool, tag = "9")]
         Null(bool),
     }
@@ -884,7 +877,7 @@ pub mod uuid_impl {
 #[cfg(feature = "chrono")]
 pub mod chrono_impl {
     use modql::filter::OpValTimestamp;
-    use crate::{ProtoConversionError, ProtoOpValTimestamp, Timestamp, TimestampList};
+    use crate::{ProtoConversionError, ProtoOpValTimestamp, TimestampList};
 
     impl TryFrom<ProtoOpValTimestamp> for OpValTimestamp {
         type Error = ProtoConversionError;
@@ -893,8 +886,8 @@ pub mod chrono_impl {
             use crate::proto_op_val_timestamp::Op;
             use chrono::{DateTime, Utc};
 
-            fn to_datetime(t: Timestamp) -> Result<DateTime<Utc>, ProtoConversionError> {
-                chrono::DateTime::from_timestamp(t.seconds, t.nanos)
+            fn to_datetime(t: prost_types::Timestamp) -> Result<DateTime<Utc>, ProtoConversionError> {
+                chrono::DateTime::from_timestamp(t.seconds, t.nanos as u32)
                     .ok_or(ProtoConversionError::MissingField("Invalid Timestamp"))
             }
 
@@ -919,10 +912,10 @@ pub mod chrono_impl {
             use crate::proto_op_val_timestamp::Op;
             use chrono::{DateTime, Utc, Timelike};
 
-            fn to_proto_timestamp(dt: DateTime<Utc>) -> Timestamp {
-                Timestamp {
+            fn to_proto_timestamp(dt: DateTime<Utc>) -> prost_types::Timestamp {
+                prost_types::Timestamp {
                     seconds: dt.timestamp(),
-                    nanos: dt.nanosecond(),
+                    nanos: dt.nanosecond() as i32,
                 }
             }
 

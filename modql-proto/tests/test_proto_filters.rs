@@ -27,6 +27,7 @@ use modql_proto::{
     ProtoOpValInt64,
     ProtoOpValJsonValue,
     ProtoOpValString,
+    ProtoOpValTimestamp,
     ProtoOrderBy,
     ProtoOrderBys,
     // list helpers
@@ -42,6 +43,7 @@ use modql_proto::{
     proto_op_val_int64,
     proto_op_val_json_value,
     proto_op_val_string,
+    proto_op_val_timestamp,
     proto_order_by,
 };
 use prost::Message as _;
@@ -833,4 +835,30 @@ fn test_empty_order_bys() {
     let lo = ListOptions::from(proto);
     let obs: Vec<_> = lo.order_bys.unwrap().into_iter().collect();
     assert!(obs.is_empty());
+}
+
+#[cfg(feature = "chrono")]
+#[test]
+fn test_wire_roundtrip_timestamp_ops() {
+    use modql_proto::proto_op_val_timestamp;
+    use chrono::{DateTime, Utc, Timelike};
+
+    let now = Utc::now();
+    let ts = prost_types::Timestamp {
+        seconds: now.timestamp(),
+        nanos: now.nanosecond() as i32,
+    };
+
+    let original = single_node_groups("created_at", ProtoOpVal {
+        value: Some(proto_op_val::Value::Timestamp(ProtoOpValTimestamp {
+            op: Some(proto_op_val_timestamp::Op::Eq(ts)),
+        })),
+    });
+
+    let bytes = original.encode_to_vec();
+    let decoded = ProtoFilterGroups::decode(bytes.as_slice()).unwrap();
+    let fg = FilterGroups::try_from(decoded).unwrap();
+    
+    let opval = first_opval(fg);
+    assert!(matches!(opval, OpVal::Timestamp(_)));
 }
