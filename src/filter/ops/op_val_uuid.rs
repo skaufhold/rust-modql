@@ -45,6 +45,7 @@ impl From<OpValUuid> for OpVal {
 
 // region:    --- json
 mod json {
+	use serde::de;
 	use super::*;
 	use crate::filter::json::OpValueToOpValType;
 	use crate::{Error, Result};
@@ -63,7 +64,9 @@ mod json {
 				let mut uuids = Vec::new();
 				for item in array.into_iter() {
 					if let Value::String(s) = item {
-						let uuid = Uuid::parse_str(&s).map_err(|_| Error::JsonValNotOfType("Uuid"))?;
+						let uuid = data_encoding::BASE64URL_NOPAD.decode(s.as_bytes())
+							.map_err(|_| crate::Error::JsonValNotOfType("Uuid"))
+							.and_then(|decoded| Uuid::from_slice(&decoded).map_err(|_| Error::JsonValNotOfType("Uuid")))?;
 						uuids.push(uuid);
 					} else {
 						return Err(Error::JsonValNotOfType("Uuid"));
@@ -76,7 +79,9 @@ mod json {
 				let Value::String(s) = value else {
 					return Err(Error::JsonValNotOfType("Uuid"));
 				};
-				Uuid::parse_str(&s).map_err(|_| Error::JsonValNotOfType("Uuid"))
+				data_encoding::BASE64URL_NOPAD.decode(s.as_bytes())
+					.map_err(|_| crate::Error::JsonValNotOfType("Uuid"))
+					.and_then(|decoded| Uuid::from_slice(&decoded).map_err(|_| Error::JsonValNotOfType("Uuid")))
 			}
 
 			let ov = match (op, value) {

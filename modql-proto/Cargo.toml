@@ -25,6 +25,7 @@ prost-types = "0.14"
 serde_json = "1"
 uuid = { version = "1", features = ["serde", "v4"], optional = true }
 chrono = { version = "0.4", features = ["serde"], optional = true }
+data-encoding = { version = "2" }
 
 [dev-dependencies]
 prost = "0.14"
